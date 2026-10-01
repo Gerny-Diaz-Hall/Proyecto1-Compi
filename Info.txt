@@ -1,0 +1,11 @@
+a. Nombre del curso: Compiladores e Intérpretes
+b. Número de semestre y año lectivo: Semestre II, 2026
+c. Nombre y carnet de los Estudiantes:
+    Gerny Mcdiell Diaz Hall
+    Yeremi Calvo Porras
+d. carnet de los Estudiantes:
+    2022172980
+    2023083332
+e. Número de proyecto programado: 1
+f. Fecha de entrega: 03 de octubre de 2026
+g. Estatus de la entrega: [ Deplorable | Regular | Buena | Muy Buena | Excelente | Superior]
