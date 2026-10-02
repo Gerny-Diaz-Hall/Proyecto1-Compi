@@ -1,0 +1,36 @@
+package compilador;
+import java_cup.runtime.*;
+
+/* =====================================================================================
+ * terminales.cup - Declaracion de terminales para el Parser.cup (copiar al inicio del .cup)
+ * Los nombres coinciden EXACTAMENTE con los tokens que devuelve Lexer.flex.
+ * Todos los tokens llevan como valor el lexema (String).
+ * ===================================================================================== */
+
+/* Palabras reservadas */
+terminal String VAL, INT, FLOAT, BOOLEAN, CHAR, STRING, VOID, PRINCIPAL, TRUE, FALSE;
+terminal String IF, ELIF, ELSE, WHILE, FOR, RETURN, BREAK, READ, WRITE;
+
+/* Identificadores y literales (sin signo) */
+terminal String IDENTIFICADOR, LITERAL_ENTERO, LITERAL_FLOTANTE, LITERAL_CARACTER, LITERAL_CADENA;
+
+/* Operadores aritmeticos:   +   -   *   /   //   %   ^   ++   -- */
+terminal String SUMA, RESTA, MULT, DIV, DIV_ENT, MOD, POT, INC, DEC;
+
+/* Operadores relacionales:  <   <=   >   >=   ==   != */
+terminal String MENOR, MENOR_IG, MAYOR, MAYOR_IG, IGUAL, DIFERENTE;
+
+/* Operadores logicos:  AND = λ    OR = θ    NOT = Σ */
+terminal String AND, OR, NOT;
+
+/* Delimitadores:  ASIGNACION = Ͱ   FIN_SENT = »   COMA = ,
+   BLOQUE = ¿: :?     INDICE = ʃ: :ʅ     PAREN = є: :э */
+terminal String ASIGNACION, FIN_SENT, COMA;
+terminal String BLOQUE_ABRE, BLOQUE_CIERRA, INDICE_ABRE, INDICE_CIERRA, PAREN_ABRE, PAREN_CIERRA;
+
+/* Correspondencia con la gramatica (gramatica_actualizada.txt):
+     "int" -> INT          "є:" -> PAREN_ABRE      "ʃ:" -> INDICE_ABRE    "¿:" -> BLOQUE_ABRE
+     "Ͱ"  -> ASIGNACION   ":э" -> PAREN_CIERRA    ":ʅ" -> INDICE_CIERRA  ":?" -> BLOQUE_CIERRA
+     "»"  -> FIN_SENT     "λ"  -> AND  "θ" -> OR  "Σ"  -> NOT
+     "+" SUMA, "-" RESTA, "*" MULT, "/" DIV, "//" DIV_ENT, "%" MOD, "^" POT
+     "<" MENOR, "<=" MENOR_IG, ">" MAYOR, ">=" MAYOR_IG, "==" IGUAL, "!=" DIFERENTE */
