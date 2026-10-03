@@ -2,38 +2,76 @@ package compilador;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 public class Main {
     public static void main(String[] args) {
-        String archivoFuente = (args.length > 0) ? args[0] : "prueba.txt";
+        if (args.length < 1) {
+            System.err.println("Uso: java compilador.Main <archivo_fuente> [carpeta_salida]");
+            return;
+        }
+
+        String archivoFuente = args[0];
+        String salida = args.length > 1 ? args[1] : ".";
+        new File(salida).mkdirs();
 
         System.out.println("==================================================");
-        System.out.println("                  compilador                      ");
+        System.out.println("            Compilador proye 1                    ");
         System.out.println("==================================================");
-        System.out.println("Archivo a analizar: " + archivoFuente);
+        System.out.println("Analizando: " + archivoFuente);
 
         try {
-            // 1. Instancia analizador léxico
-            Reader lector = new InputStreamReader(new FileInputStream(archivoFuente), StandardCharsets.UTF_8);
-            Lexer scanner = new Lexer(lector);
+            // ==========================================================
+            // analisis lexico, generar archivos
+            // ==========================================================
+            Lexer lexerTokens;
+            try (Reader in = new InputStreamReader(new FileInputStream(archivoFuente), StandardCharsets.UTF_8)) {
+                lexerTokens = new Lexer(in);
+                while (lexerTokens.next_token().sym != sym.EOF) { 
+                }
+            }
 
-            // 2. Instancia analizador sintáctico
-            parser sintactico = new parser(scanner);
+            // Escribe reportes
+            escribir(salida + "/tokens.txt", lexerTokens.getTablaSimbolos()::escribirTokens);
+            escribir(salida + "/tablas_simbolos.txt", lexerTokens.getTablaSimbolos()::escribirTablas);
+            
+            List<String> erroresLexicos = lexerTokens.getErrores();
+            escribir(salida + "/errores_lexicos.txt", pw -> {
+                if (erroresLexicos.isEmpty()) pw.println("Sin errores lexicos.");
+                for (String e : erroresLexicos) pw.println(e);
+            });
 
-            // 3. Ejecuta análisis sintáctico
+            System.out.println("\nReportes léxicos generados:");
+            System.out.println("  - tokens.txt");
+            System.out.println("  - tablas_simbolos.txt");
+            System.out.println("  - errores_lexicos.txt");
+
+            // ==========================================================
+            // analisis sintaxis, gramatica
+            // ==========================================================
+            
+            Reader lectorParser = new InputStreamReader(new FileInputStream(archivoFuente), StandardCharsets.UTF_8);
+            Lexer scannerParser = new Lexer(lectorParser);
+            parser sintactico = new parser(scannerParser);
+
+            // validacion sintactica
             sintactico.parse();
 
             System.out.println("\n==================================================");
-            System.out.println(" res: bien");
-            System.out.println(" cumple gramatica");
+            System.out.println(" Resultado: puede ser generado ");
             System.out.println("==================================================");
 
         } catch (Exception e) {
             System.err.println("\n==================================================");
-            System.err.println(" res: nel, ta malo");
-            System.err.println(" Revisa reportes de recuperacion");
+            System.err.println(" Resultado: archivo tiene errores.");
+            System.err.println(" revisar consola o reportes ");
             System.err.println("==================================================");
-            e.printStackTrace();
+        }
+    }
+
+    private static void escribir(String ruta, java.util.function.Consumer<PrintWriter> c) throws IOException {
+        try (PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(ruta), StandardCharsets.UTF_8))) { 
+            c.accept(pw); 
         }
     }
 }
