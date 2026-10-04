@@ -4,13 +4,20 @@ import java_cup.runtime.*;
 import java.util.ArrayList;
 
 parser code {:
+    /* Lista de errores sintacticos encontrados (el parser no se detiene) */
+    public java.util.List<String> erroresSintacticos = new java.util.ArrayList<>();
+
     // Métodos para manejo de errores desintaxis
     public void syntax_error(Symbol cur_token) {
-        report_error("Error sintáctico en la línea " + (cur_token.left + 1) + ", columna " + (cur_token.right + 1) + ". Token no esperado: " + cur_token.value, null);
+        String m = "Error sintactico en linea " + cur_token.left + ", columna " + cur_token.right + ". Token no esperado: " + cur_token.value;
+        erroresSintacticos.add(m);
+        System.err.println(m);
     }
 
+    /* Se llama si el modo panico no logra recuperarse */
     public void unrecovered_syntax_error(Symbol cur_token) throws java.lang.Exception {
-        report_fatal_error("Error fatal: No se pudo recuperar de los errores sintácticos.", null);
+        erroresSintacticos.add("Error fatal: no se pudo recuperar de los errores sintacticos.");
+        report_fatal_error("Error fatal: No se pudo recuperar de los errores sintacticos.", null);
     }
 :};
 
@@ -36,16 +43,6 @@ non terminal op_rel, expr_relacional, expr_comparable, grupo, expr_logica;
 non terminal expr_arit, termino, residuo, factor, base;
 non terminal numero_con_signo, entero, flotante, caracter, cadena, booleano;
 
-// PRECEDENCIAS Y ASOCIATIVIDADES 
-precedence left OR;
-precedence left AND;
-precedence right NOT;
-precedence left IGUAL, DIFERENTE, MENOR, MENOR_IG, MAYOR, MAYOR_IG;
-precedence left SUMA, RESTA;
-precedence left MULT, DIV, DIV_ENT, MOD;
-precedence right POT;
-precedence right INC, DEC, RESTA;
-
 start with programa;
 
 // 1. ESTRUCTURA DEL PROGRAMA Y VARIABLES GLOBALES 
@@ -59,6 +56,7 @@ programa ::=
 globales ::= 
     globales declaracion
     | declaracion
+    | globales error FIN_SENT
     ;
 
 principal ::= 
@@ -67,6 +65,7 @@ principal ::=
 
 bloque ::= 
     BLOQUE_ABRE sentencias BLOQUE_CIERRA
+    | BLOQUE_ABRE BLOQUE_CIERRA
     ;
 
 sentencias ::= 
@@ -82,6 +81,8 @@ sentencia ::=
     | funcion_io
     | return_stmt
     | break_stmt
+    | error FIN_SENT
+    | error BLOQUE_CIERRA
     ;
 
 // 2. TIPOS, LITERALES Y VARIABLES 

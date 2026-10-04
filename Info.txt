@@ -8,4 +8,4 @@ d. carnet de los Estudiantes:
     2023083332
 e. Número de proyecto programado: 1
 f. Fecha de entrega: 03 de octubre de 2026
-g. Estatus de la entrega: [ Deplorable | Regular | Buena | Muy Buena | Excelente | Superior]
+g. Estatus de la entrega: [ Excelente ]

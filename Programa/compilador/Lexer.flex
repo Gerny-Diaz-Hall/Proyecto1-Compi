@@ -10,6 +10,10 @@ import java_cup.runtime.Symbol;
 %column
 %cup
 
+%eofval{
+    return new Symbol(sym.EOF, yyline + 1, yycolumn + 1, "fin de archivo");
+%eofval}
+
 %{
     /* Tablas de simbolos y lista de tokens encontrados */
     private final TablaSimbolos tablaSimbolos = new TablaSimbolos();

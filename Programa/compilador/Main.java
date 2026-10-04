@@ -54,18 +54,30 @@ public class Main {
             Lexer scannerParser = new Lexer(lectorParser);
             parser sintactico = new parser(scannerParser);
 
-            // validacion sintactica
-            sintactico.parse();
+            // validacion sintactica (modo panico: reporta y continua)
+            try {
+                sintactico.parse();
+            } catch (Exception e) {
+                // error irrecuperable: ya quedo registrado en erroresSintacticos
+            }
 
+            List<String> erroresSintacticos = sintactico.erroresSintacticos;
+            escribir(salida + "/errores_sintacticos.txt", pw -> {
+                if (erroresSintacticos.isEmpty()) pw.println("Sin errores sintacticos.");
+                for (String e : erroresSintacticos) pw.println(e);
+            });
+            System.out.println("  - errores_sintacticos.txt");
+
+            boolean valido = erroresLexicos.isEmpty() && erroresSintacticos.isEmpty();
             System.out.println("\n==================================================");
-            System.out.println(" Resultado: puede ser generado ");
+            System.out.println(valido
+                ? " Resultado: el archivo SI puede ser generado por la gramatica"
+                : " Resultado: el archivo NO puede ser generado por la gramatica ("
+                  + erroresLexicos.size() + " lexicos, " + erroresSintacticos.size() + " sintacticos)");
             System.out.println("==================================================");
 
         } catch (Exception e) {
-            System.err.println("\n==================================================");
-            System.err.println(" Resultado: archivo tiene errores.");
-            System.err.println(" revisar consola o reportes ");
-            System.err.println("==================================================");
+            System.err.println("Error al procesar el archivo: " + e.getMessage());
         }
     }
 
