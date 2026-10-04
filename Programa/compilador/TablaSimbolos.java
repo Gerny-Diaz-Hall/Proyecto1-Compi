@@ -3,28 +3,25 @@ package compilador;
 import java.io.PrintWriter;
 import java.util.*;
 
-/**
- * TablaSimbolos - Guarda TODOS los tokens encontrados por el scanner y los distribuye en 4 tablas.
- *
- * OBJETIVO : cumplir los puntos (b) y (c) del proyecto: archivo de tokens (token + lexema) e
- *            indicar en que tabla de simbolos va cada token y que informacion se almacena.
- * ENTRADA  : llamadas a registrar(...) desde el scanner (una por cada token reconocido).
- * SALIDA   : escribirTokens(...) y escribirTablas(...) con los reportes en texto.
- *
- * TABLAS (y la informacion que guarda cada una):
- *  1. RESERVADAS     : palabras reservadas (val, int, if, ...)
- *                      guarda: lexema, token, ocurrencias, lineas donde aparece.
- *  2. IDENTIFICADORES: nombres de variables y funciones.
- *                      guarda: lexema, primera linea, ocurrencias, lineas. (El tipo de dato y el
- *                      ambito se completan en la fase semantica, no en el scanner.)
- *  3. LITERALES      : constantes enteras, flotantes, caracteres y cadenas.
- *                      guarda: lexema (valor), tipo de literal (token), ocurrencias, lineas.
- *  4. OPERADORES     : operadores y simbolos especiales (+, <=, lambda, bloques, indices, ...).
- *                      guarda: lexema, token, ocurrencias, lineas.
+/*
+ * Objetivo: Gestionar, clasificar y almacenar todos los tokens que va encontrando al analizar
+ * reparte los tokens que se va encontrando en 4 tablas 
+ * 
+ * Entrada: Recibe los datos de cada token por la funcion de registrar todas las veces que se reconocen patrones
+ * 
+ * Salidas: genera el texto y crea los reportes "tokens.txt" y "tablas_simbolos.txt"
+ * 
+ * Restricciones: no se guardan los tipos de datos ni identificadores en la parte lexica pero se completan en semantica
  */
 public class TablaSimbolos {
 
-    /** Las cuatro tablas disponibles. */
+    /*
+     * tablas de reportes:
+     * -reservadas: Guarda lexema, token, ocurrencias y líneas
+     * -identificadores: Guarda lexema, primera línea, ocurrencias y líneas.
+     * -literales: Guarda lexema, tipo de literal, ocurrencias y líneas.
+     * -operadores: Guarda lexema, token, ocurrencias y líneas
+     */
     public enum Tipo {
         RESERVADAS("TABLA DE PALABRAS RESERVADAS", "lexema, token, ocurrencias, lineas"),
         IDENTIFICADORES("TABLA DE IDENTIFICADORES", "lexema, primera linea, ocurrencias, lineas (tipo/ambito: fase semantica)"),
@@ -35,7 +32,7 @@ public class TablaSimbolos {
         Tipo(String titulo, String informacion) { this.titulo = titulo; this.informacion = informacion; }
     }
 
-    /** Una fila de una tabla de simbolos (un lexema distinto). */
+    /* Presenta una fila individual dentro de una tabla de símbolos */
     public static class Entrada {
         public final String lexema, token;
         public final int primeraLinea;
@@ -44,7 +41,7 @@ public class TablaSimbolos {
         Entrada(String lexema, String token, int linea) { this.lexema = lexema; this.token = token; this.primeraLinea = linea; }
     }
 
-    /** Un token tal como aparece en el codigo fuente (para el archivo de tokens). */
+    /* Presenta el registro de secuencia de cada token a como fueron saliendo*/
     public static class Registro {
         public final int linea, columna;
         public final String token, lexema;
@@ -57,7 +54,10 @@ public class TablaSimbolos {
 
     public TablaSimbolos() { for (Tipo t : Tipo.values()) tablas.put(t, new LinkedHashMap<>()); }
 
-    /** Registra un token en la lista general y en la tabla indicada. */
+    /*
+     * Agrega un nuevo token al historial general y actualiza la tabla de símbolos correspondiente, pero si el lexema ya estaba en la tabla
+     * se le suma en la ocurrencia y se anota la nueva linea
+     */
     public void registrar(Tipo tabla, String token, String lexema, int linea, int columna) {
         tokens.add(new Registro(linea, columna, token, lexema, tabla));
         Entrada e = tablas.get(tabla).computeIfAbsent(lexema, k -> new Entrada(lexema, token, linea));
@@ -68,7 +68,9 @@ public class TablaSimbolos {
     public List<Registro> getTokens() { return tokens; }
     public Map<Tipo, LinkedHashMap<String, Entrada>> getTablas() { return tablas; }
 
-    /** Archivo de tokens: una linea por token (linea:columna, token, lexema, tabla). */
+    /*
+     * Construir reporte: hace print de la lista de los tokens de columna, token, lexema y tabla 
+     */
     public void escribirTokens(PrintWriter out) {
         out.println("LINEA:COL\tTOKEN\tLEXEMA\tTABLA DE SIMBOLOS");
         for (Registro r : tokens)
@@ -77,7 +79,9 @@ public class TablaSimbolos {
         out.println("Total de tokens: " + tokens.size());
     }
 
-    /** Reporte de las cuatro tablas. */
+    /*
+     * Construir reporte: hace print de todas las tablas, se muestran los lexemas y las lineas en las que sale y cuanto se usa
+     */
     public void escribirTablas(PrintWriter out) {
         for (Tipo t : Tipo.values()) {
             out.println("==== " + t.titulo + " ====");

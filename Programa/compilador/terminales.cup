@@ -3,25 +3,39 @@ package compilador;
 import java_cup.runtime.*;
 import java.util.ArrayList;
 
+/*
+ * OBJETIVO: configurar y se define el analizador sintactico usando cup
+ * esto es lo que se va a insertar en la clase del parser qe se va a generar
+ * para guardar los errores que se vayan encontrando y que el compilador pueda revisar el resto del codigo 
+ * 
+ * ENTRADAS: se tiene el simbolo que no es uno esperado con su linea para enseñar el error
+ * SALIDAS: va agregarndo los errores en una lista para que se muestren al final del analisis
+ */
 parser code {:
-    /* Lista de errores sintacticos encontrados (el parser no se detiene) */
+    // para guardar los errores de sintaxis sin que se frene el analisis
     public java.util.List<String> erroresSintacticos = new java.util.ArrayList<>();
 
-    // Métodos para manejo de errores desintaxis
+    // metodo para el modo de panico, para los errores de sintaxis se vayan agregando a la lista que se va a mostrar al final
+    // y se va siguiendo con el analisis sin freno para recopilar todos los errores 
     public void syntax_error(Symbol cur_token) {
         String m = "Error sintactico en linea " + cur_token.left + ", columna " + cur_token.right + ". Token no esperado: " + cur_token.value;
         erroresSintacticos.add(m);
         System.err.println(m);
     }
 
-    /* Se llama si el modo panico no logra recuperarse */
+    // solo para cuando el panico no es suficente y no se puede seguir leyendo el resto del codigo 
+    // tecnicamente lo que hace es encontrar el proximo punto seguro para poder seguir revisando
     public void unrecovered_syntax_error(Symbol cur_token) throws java.lang.Exception {
         erroresSintacticos.add("Error fatal: no se pudo recuperar de los errores sintacticos.");
         report_fatal_error("Error fatal: No se pudo recuperar de los errores sintacticos.", null);
     }
 :};
 
-// TERMINALES
+/*
+ * =====================
+ * declaracion de tokens
+ * =====================
+ */
 terminal String VAL, INT, FLOAT, BOOLEAN, CHAR, STRING, VOID, PRINCIPAL, TRUE, FALSE;
 terminal String IF, ELIF, ELSE, WHILE, FOR, RETURN, BREAK, READ, WRITE;
 terminal String IDENTIFICADOR, LITERAL_ENTERO, LITERAL_FLOTANTE, LITERAL_CARACTER, LITERAL_CADENA;
@@ -31,7 +45,12 @@ terminal String AND, OR, NOT;
 terminal String ASIGNACION, FIN_SENT, COMA;
 terminal String BLOQUE_ABRE, BLOQUE_CIERRA, INDICE_ABRE, INDICE_CIERRA, PAREN_ABRE, PAREN_CIERRA;
 
-// NO TERMINALES 
+
+/*
+ * ===================
+ * reglas de gramatica
+ * ===================
+ */
 non terminal programa, globales, declaracion, principal, bloque, sentencias, sentencia;
 non terminal funciones, funcion, tipo_retorno, parametros, parametro, return_stmt, funcion_io, parametro_write;
 non terminal estructura_control, si_condicional, lista_elif, bloque_elif, bloque_else;
@@ -45,7 +64,9 @@ non terminal numero_con_signo, entero, flotante, caracter, cadena, booleano;
 
 start with programa;
 
-// 1. ESTRUCTURA DEL PROGRAMA Y VARIABLES GLOBALES 
+/* ==================================
+ * estructura y globales del programa
+ * ==================================*/
 programa ::= 
     globales funciones principal
     | globales principal
@@ -56,7 +77,8 @@ programa ::=
 globales ::= 
     globales declaracion
     | declaracion
-    | globales error FIN_SENT
+    // aqui se sincroniza el panico por si hay error que no se frene el analisis
+    | globales error FIN_SENT 
     ;
 
 principal ::= 
@@ -81,43 +103,25 @@ sentencia ::=
     | funcion_io
     | return_stmt
     | break_stmt
+    // sincronisacion de panico para errores en sentencias
     | error FIN_SENT
     | error BLOQUE_CIERRA
     ;
 
-// 2. TIPOS, LITERALES Y VARIABLES 
-tipo_numerico ::= 
-    INT 
-    | FLOAT
-    ;
-
-tipo_otro ::= 
-    BOOLEAN 
-    | CHAR 
-    | STRING
-    ;
-
-tipo_dato ::= 
-    tipo_numerico 
-    | tipo_otro
-    ;
-
-booleano ::= 
-    TRUE 
-    | FALSE
-    ;
-
+/* ==========================
+ * tipos, literales,variables
+ * ========================== */
+tipo_numerico ::= INT | FLOAT ;
+tipo_otro ::= BOOLEAN | CHAR | STRING ;
+tipo_dato ::= tipo_numerico | tipo_otro ;
+booleano ::= TRUE | FALSE ;
 entero ::= LITERAL_ENTERO;
 flotante ::= LITERAL_FLOTANTE;
 caracter ::= LITERAL_CARACTER;
 cadena ::= LITERAL_CADENA;
 
 numero_con_signo ::= 
-    RESTA entero
-    | entero
-    | RESTA flotante
-    | flotante
-    ;
+    RESTA entero | entero | RESTA flotante | flotante ;
 
 declaracion ::= 
     VAL tipo_numerico IDENTIFICADOR resto_numerico
@@ -167,57 +171,33 @@ llamada_funcion ::=
     | IDENTIFICADOR PAREN_ABRE PAREN_CIERRA
     ;
 
-//  3. FUNCIONES Y E/S 
-funciones ::= 
-    funciones funcion
-    | funcion
-    ;
+/* =============================
+ * funciones, entradas y salidas
+ * =============================*/
+funciones ::= funciones funcion | funcion ;
 
 funcion ::= 
     tipo_retorno IDENTIFICADOR PAREN_ABRE parametros PAREN_CIERRA bloque
     | tipo_retorno IDENTIFICADOR PAREN_ABRE PAREN_CIERRA bloque
     ;
 
-tipo_retorno ::= 
-    INT 
-    | FLOAT 
-    | CHAR 
-    | BOOLEAN
-    ;
+tipo_retorno ::= INT | FLOAT | CHAR | BOOLEAN ;
+parametros ::= parametros COMA parametro | parametro ;
+parametro ::= tipo_dato IDENTIFICADOR ;
 
-parametros ::= 
-    parametros COMA parametro
-    | parametro
-    ;
-
-parametro ::= 
-    tipo_dato IDENTIFICADOR
-    ;
-
-return_stmt ::= 
-    RETURN FIN_SENT
-    | RETURN expr_general FIN_SENT
-    ;
+return_stmt ::= RETURN FIN_SENT | RETURN expr_general FIN_SENT ;
 
 funcion_io ::= 
     READ PAREN_ABRE variable PAREN_CIERRA FIN_SENT
     | WRITE PAREN_ABRE parametro_write PAREN_CIERRA FIN_SENT
     ;
 
-parametro_write ::= 
-    variable 
-    | numero_con_signo 
-    | booleano 
-    | caracter 
-    | cadena
-    ;
+parametro_write ::= variable | numero_con_signo | booleano | caracter | cadena ;
 
-// 4. ESTRUCTURAS DE CONTROL 
-estructura_control ::= 
-    si_condicional
-    | ciclo_while
-    | ciclo_for
-    ;
+/* =========================================================================
+ * estructuras de control
+ * ========================================================================= */
+estructura_control ::= si_condicional | ciclo_while | ciclo_for ;
 
 si_condicional ::= 
     IF PAREN_ABRE expr_booleana PAREN_CIERRA bloque
@@ -226,26 +206,13 @@ si_condicional ::=
     | IF PAREN_ABRE expr_booleana PAREN_CIERRA bloque lista_elif bloque_else
     ;
 
-lista_elif ::= 
-    lista_elif bloque_elif
-    | bloque_elif
-    ;
+lista_elif ::= lista_elif bloque_elif | bloque_elif ;
+bloque_elif ::= ELIF PAREN_ABRE expr_booleana PAREN_CIERRA bloque ;
+bloque_else ::= ELSE bloque ;
 
-bloque_elif ::= 
-    ELIF PAREN_ABRE expr_booleana PAREN_CIERRA bloque
-    ;
+ciclo_while ::= WHILE PAREN_ABRE expr_booleana PAREN_CIERRA bloque ;
 
-bloque_else ::= 
-    ELSE bloque
-    ;
-
-ciclo_while ::= 
-    WHILE PAREN_ABRE expr_booleana PAREN_CIERRA bloque
-    ;
-
-ciclo_for ::= 
-    FOR PAREN_ABRE for_init FIN_SENT expr_booleana FIN_SENT for_update PAREN_CIERRA bloque
-    ;
+ciclo_for ::= FOR PAREN_ABRE for_init FIN_SENT expr_booleana FIN_SENT for_update PAREN_CIERRA bloque ;
 
 for_init ::= 
     VAL tipo_dato IDENTIFICADOR ASIGNACION expr_general
@@ -258,53 +225,24 @@ for_update ::=
     | IDENTIFICADOR DEC
     ;
 
-break_stmt ::= 
-    BREAK FIN_SENT
-    ;
+break_stmt ::= BREAK FIN_SENT ;
 
-// 5. EXPRESIONES GENERALES, RELACIONALES Y LÓGICAS 
-expr_general ::= 
-    expr_grupo
-    | cadena
-    | caracter
-    ;
+/* =========================================================================
+ * generales, relacionales y logicas 
+ * ========================================================================= */
+expr_general ::= expr_grupo | cadena | caracter ;
+expr_grupo ::= expr_arit | expr_logica | expr_relacional | booleano ;
+expr_booleana ::= expr_logica | expr_relacional | booleano | valor ;
 
-expr_grupo ::= 
-    expr_arit
-    | expr_logica
-    | expr_relacional
-    | booleano
-    ;
-
-expr_booleana ::= 
-    expr_logica
-    | expr_relacional
-    | booleano
-    | valor
-    ;
-
-op_rel ::= 
-    MENOR 
-    | MENOR_IG 
-    | MAYOR 
-    | MAYOR_IG 
-    | IGUAL 
-    | DIFERENTE
-    ;
+op_rel ::= MENOR | MENOR_IG | MAYOR | MAYOR_IG | IGUAL | DIFERENTE ;
 
 expr_relacional ::= 
     INDICE_ABRE expr_comparable INDICE_CIERRA op_rel INDICE_ABRE expr_comparable INDICE_CIERRA
     ;
 
-expr_comparable ::= 
-    expr_arit 
-    | booleano 
-    | caracter
-    ;
+expr_comparable ::= expr_arit | booleano | caracter ;
 
-grupo ::= 
-    PAREN_ABRE expr_grupo PAREN_CIERRA
-    ;
+grupo ::= PAREN_ABRE expr_grupo PAREN_CIERRA ;
 
 expr_logica ::= 
     grupo AND grupo
@@ -312,7 +250,9 @@ expr_logica ::=
     | NOT grupo
     ;
 
-// 6. NÚCLEO ARITMÉTICO 
+/* ==========================
+ * aritmeticas y precedencia 
+ * ==========================*/
 expr_arit ::= 
     expr_arit SUMA termino
     | expr_arit RESTA termino

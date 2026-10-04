@@ -636,17 +636,19 @@ public class parser extends java_cup.runtime.lr_parser {
 
 
 
-    /* Lista de errores sintacticos encontrados (el parser no se detiene) */
+    // para guardar los errores de sintaxis sin que se frene el analisis
     public java.util.List<String> erroresSintacticos = new java.util.ArrayList<>();
 
-    // Métodos para manejo de errores desintaxis
+    // metodo para el modo de panico, para los errores de sintaxis se vayan agregando a la lista que se va a mostrar al final
+    // y se va siguiendo con el analisis sin freno para recopilar todos los errores 
     public void syntax_error(Symbol cur_token) {
         String m = "Error sintactico en linea " + cur_token.left + ", columna " + cur_token.right + ". Token no esperado: " + cur_token.value;
         erroresSintacticos.add(m);
         System.err.println(m);
     }
 
-    /* Se llama si el modo panico no logra recuperarse */
+    // solo para cuando el panico no es suficente y no se puede seguir leyendo el resto del codigo 
+    // tecnicamente lo que hace es encontrar el proximo punto seguro para poder seguir revisando
     public void unrecovered_syntax_error(Symbol cur_token) throws java.lang.Exception {
         erroresSintacticos.add("Error fatal: no se pudo recuperar de los errores sintacticos.");
         report_fatal_error("Error fatal: No se pudo recuperar de los errores sintacticos.", null);

@@ -1,7 +1,30 @@
+/*
+ * Lexer.flex - Especificacion del analizador lexico (scanner) para JFlex.
+ *
+ * OBJETIVO      : reconocer los tokens del lenguaje, registrarlos en la tabla de simbolos
+ *                 que les corresponde y entregarlos uno por uno al parser generado por CUP.
+ * ENTRADA       : archivo fuente codificado en UTF-8.
+ * SALIDA        : objetos Symbol (id del token, linea, columna, lexema) por cada llamada a
+ *                 next_token(); ademas la lista de errores lexicos y la
+ *                 tabla de simbolos llena (getTablaSimbolos()).
+ * RESTRICCIONES : - Los literales numericos NO llevan signo: el '-' siempre es el token RESTA
+ *                   y la gramatica decide si es resta o negativo unario.
+ *                 - Un flotante necesita digitos a ambos lados del punto (2.20 si; 2. y .5 no).
+ *                 - Un caracter es exactamente un simbolo entre comillas simples ('a').
+ *                 - Las cadenas no pueden ocupar mas de una linea.
+ *                 - Lineas y columnas se reportan desde 1 (JFlex las cuenta desde 0).
+ */
+
 package compilador;
 import java_cup.runtime.Symbol;
 
 %%
+
+/* ------------------------------ Opciones ------------------------------ */
+/* %public/%class : genera la clase publica Lexer                          */
+/* %unicode       : acepta todo Unicode (necesario para ¿: ʃ: є: Ͱ » λ θ Σ) */
+/* %line/%column  : JFlex lleva la linea (yyline) y columna (yycolumn)      */
+/* %cup           : el scanner implementa la interfaz Scanner de CUP        */
 
 %public
 %class Lexer
@@ -15,27 +38,37 @@ import java_cup.runtime.Symbol;
 %eofval}
 
 %{
-    /* Tablas de simbolos y lista de tokens encontrados */
+    /* Tablas de simbolos y lista de todos los tokens encontrados */
     private final TablaSimbolos tablaSimbolos = new TablaSimbolos();
 
-    /* Errores lexicos encontrados (el scanner no se detiene)*/
+    /* Errores lexicos encontrados (el scanner no se detiene si se los encuentra) */
     private final java.util.List<String> errores = new java.util.ArrayList<>();
 
+    /* Acceso a los resultados para que Main escriba los reportes */
     public TablaSimbolos getTablaSimbolos() { return tablaSimbolos; }
     public java.util.List<String> getErrores() { return errores; }
-
+    
+    /* Nombres cortos de las cuatro tablas de simbolos */
     private static final TablaSimbolos.Tipo RESERVADA = TablaSimbolos.Tipo.RESERVADAS;
     private static final TablaSimbolos.Tipo IDENT     = TablaSimbolos.Tipo.IDENTIFICADORES;
     private static final TablaSimbolos.Tipo LITERAL   = TablaSimbolos.Tipo.LITERALES;
     private static final TablaSimbolos.Tipo OPERADOR  = TablaSimbolos.Tipo.OPERADORES;
 
-    /* Crea el token, lo registra en su tabla y lo entrega al parser */
+    /*
+     * tok - Crea un token, lo registra en su tabla y lo entrega al parser.
+     * ENTRADA : id (constante de sym), nombre del token y tabla de simbolos destino.
+     * SALIDA  : Symbol con linea y columna en base 1 y el lexema como valor.
+     */
     private Symbol tok(int id, String nombre, TablaSimbolos.Tipo tabla) {
         tablaSimbolos.registrar(tabla, nombre, yytext(), yyline + 1, yycolumn + 1);
         return new Symbol(id, yyline + 1, yycolumn + 1, yytext());
     }
 
-    /* Reporta un error lexico y continua */
+    /*
+     * error - Registra un error lexico y permite que el scanner continue (modo panico).
+     * ENTRADA : descripcion del error; el lexema invalido se toma de yytext().
+     * SALIDA  : agrega a la lista un mensaje con linea, columna, descripcion y lexema.
+     */
     private void error(String mensaje) {
         errores.add("Error lexico en linea " + (yyline + 1) + ", columna " + (yycolumn + 1)
                     + ": " + mensaje + " -> '" + yytext().replace("\n", "\\n").replace("\r", "") + "'");
@@ -44,8 +77,10 @@ import java_cup.runtime.Symbol;
 
 /* ------------------------------- Macros ------------------------------- */
 
+/* Espacios en blanco, saltos de linea se ignoran */
 ESPACIO      = [ \t\r\n\f\uFEFF]+
 
+/* Identificador: inicia con letra o '_', sigue con letras, digitos o '_' */
 LETRA        = [a-zA-Z_]
 DIGITO       = [0-9]
 ID           = {LETRA}({LETRA}|{DIGITO})*
@@ -61,7 +96,7 @@ COMENT_LINEA      = "|"[^\r\n]*
 COMENT_BLOQUE     = \u00A1[^!]*"!"
 COMENT_SIN_CERRAR = \u00A1[^!]*
 
-/* Simbolos especiales del lenguaje (glifo -> codigo unicode) */
+/* Simbolos especiales del lenguaje (glifo -> codigo unicode, esto se hizo para evitar problemas de codificacion) */
 BLOQUE_ABRE   = \u00BF":"       /* ¿:  */
 BLOQUE_CIERRA = ":?"             /* :?  */
 INDICE_ABRE   = \u0283":"        /* ʃ:  */
@@ -77,8 +112,11 @@ OP_NOT        = \u03A3           /* Σ   */
 %%
 
 /* ------------------------------- Reglas ------------------------------- */
+/* JFlex siempre toma el lexema MAS LARGO; si dos reglas reconocen el mismo  */
+/* largo, gana la que aparece primero. Por eso las reservadas van antes que  */
+/* los identificadores, y "++", "//", "<=" antes que "+", "/", "<".          */
 
-
+/* ---- Espacios y comentarios: no generan token ---- */
 {ESPACIO}            { /* se ignora */ }
 {COMENT_LINEA}       { /* se ignora */ }
 {COMENT_BLOQUE}      { /* se ignora */ }
@@ -106,6 +144,7 @@ OP_NOT        = \u03A3           /* Σ   */
 "write"      { return tok(sym.WRITE,     "WRITE",     RESERVADA); }
 
 /* ---- Identificadores y literales ---- */
+/* FLOTANTE va antes que ENTERO para que 2.20 sea un solo token */
 {ID}         { return tok(sym.IDENTIFICADOR,    "IDENTIFICADOR",    IDENT);   }
 {FLOTANTE}   { return tok(sym.LITERAL_FLOTANTE, "LITERAL_FLOTANTE", LITERAL); }
 {ENTERO}     { return tok(sym.LITERAL_ENTERO,   "LITERAL_ENTERO",   LITERAL); }
@@ -113,6 +152,7 @@ OP_NOT        = \u03A3           /* Σ   */
 {CADENA}     { return tok(sym.LITERAL_CADENA,   "LITERAL_CADENA",   LITERAL); }
 
 /* ---- Operadores aritmeticos ---- */
+/* "++", "--" y "//" van antes que "+", "-" y "/" para que se tome el mas largo */
 "++"         { return tok(sym.INC,     "INC",     OPERADOR); }
 "--"         { return tok(sym.DEC,     "DEC",     OPERADOR); }
 "+"          { return tok(sym.SUMA,    "SUMA",    OPERADOR); }
@@ -131,12 +171,12 @@ OP_NOT        = \u03A3           /* Σ   */
 "<"          { return tok(sym.MENOR,     "MENOR",     OPERADOR); }
 ">"          { return tok(sym.MAYOR,     "MAYOR",     OPERADOR); }
 
-/* ---- Operadores logicos ---- */
+/* ---- Operadores logicos: conjuncion λ, disyuncion θ, negacion Σ ---- */
 {OP_AND}     { return tok(sym.AND, "AND", OPERADOR); }
 {OP_OR}      { return tok(sym.OR,  "OR",  OPERADOR); }
 {OP_NOT}     { return tok(sym.NOT, "NOT", OPERADOR); }
 
-/* ---- Delimitadores y simbolos especiales ---- */
+/* ---- Delimitadores y simbolos especiales  ---- */
 {ASIGNACION}     { return tok(sym.ASIGNACION,    "ASIGNACION",    OPERADOR); }
 {FIN_SENT}       { return tok(sym.FIN_SENT,      "FIN_SENT",      OPERADOR); }
 ","              { return tok(sym.COMA,          "COMA",          OPERADOR); }
@@ -147,7 +187,8 @@ OP_NOT        = \u03A3           /* Σ   */
 {PAREN_ABRE}     { return tok(sym.PAREN_ABRE,    "PAREN_ABRE",    OPERADOR); }
 {PAREN_CIERRA}   { return tok(sym.PAREN_CIERRA,  "PAREN_CIERRA",  OPERADOR); }
 
-/* ---- Errores lexicos (modo panico: se reporta, se descarta y se sigue) ---- */
+/* Errores lexicos: se reporta el error, se descarta y se sigue (modo panico) */
+/* Van al final para que solo entren si ninguna regla valida coincide */
 \"[^\"\r\n]*          { error("cadena sin cerrar (falta '\"' en la misma linea)"); }
 "'"[^'\r\n]*"'"?      { error("literal de caracter mal formado (debe tener exactamente 1 caracter)"); }
 [^]                   { error("simbolo no reconocido por el lenguaje"); }
