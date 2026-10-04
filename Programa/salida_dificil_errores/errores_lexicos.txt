@@ -1,0 +1,5 @@
+Error lexico en linea 14, columna 20: simbolo no reconocido por el lenguaje -> '.'
+Error lexico en linea 15, columna 19: simbolo no reconocido por el lenguaje -> '.'
+Error lexico en linea 16, columna 23: simbolo no reconocido por el lenguaje -> '.'
+Error lexico en linea 25, columna 19: literal de caracter mal formado (debe tener exactamente 1 caracter) -> ''ab''
+Error lexico en linea 32, columna 11: simbolo no reconocido por el lenguaje -> '@'

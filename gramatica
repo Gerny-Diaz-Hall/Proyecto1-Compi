@@ -1,0 +1,236 @@
+==================================================================================================
+1. Tipos de datos y literales
+==================================================================================================
+/* Aqui lo que vamos a hacer es separar los tipos numericos (los unicos que pueden ser arreglo) del resto.
+   Asi con esto "val int x" no deberia de generar conflicto */
+<tipo_numerico> ::= "int" | "float"
+<tipo_otro>     ::= "boolean" | "char" | "string"
+<tipo_dato>     ::= <tipo_numerico> | <tipo_otro>
+
+<booleano> ::= "true" | "false"
+
+
+<entero>        ::= LITERAL_ENTERO
+<flotante>      ::= LITERAL_FLOTANTE
+<caracter>      ::= LITERAL_CARACTER
+<cadena>        ::= LITERAL_CADENA
+<identificador> ::= IDENTIFICADOR
+
+/* Numero con signo opcional. El negativo solo aplica a literales */
+<numero_con_signo> ::= "-" <entero>
+                     | <entero>
+                     | "-" <flotante>
+                     | <flotante>
+
+/* Literales permitidos (incluye negativos) */
+<literal> ::= <numero_con_signo> | <booleano> | <caracter> | <cadena>
+
+==================================================================================================
+2. Estructura del programa y variables globales
+==================================================================================================
+<programa> ::= <globales> <funciones> <principal>
+             | <globales> <principal>
+             | <funciones> <principal>
+             | <principal>
+
+<globales> ::= <globales> <declaracion>
+             | <declaracion>
+
+<principal> ::= "void" "principal" "є:" ":э" <bloque>
+
+/* Bloque nunca vacio */
+<bloque> ::= "¿:" <sentencias> ":?"
+
+<sentencias> ::= <sentencias> <sentencia>
+               | <sentencia>
+
+<sentencia> ::= <declaracion>
+              | <asignacion_var>
+              | <sentencia_expr>
+              | <estructura_control>
+              | <funcion_io>
+              | <return_stmt>
+              | <break_stmt>
+
+==================================================================================================
+3. Funciones (I/O, parametros y retorno)
+==================================================================================================
+<funciones> ::= <funciones> <funcion>
+              | <funcion>
+
+<funcion> ::= <tipo_retorno> <identificador> "є:" <parametros> ":э" <bloque>
+            | <tipo_retorno> <identificador> "є:" ":э" <bloque>
+
+<tipo_retorno> ::= "int" | "float" | "char" | "boolean"
+
+<parametros> ::= <parametros> "," <parametro>
+               | <parametro>
+
+<parametro> ::= <tipo_dato> <identificador>
+
+<return_stmt> ::= "return" "»"
+                | "return" <expr_general> "»"
+
+<funcion_io> ::= "read" "є:" <variable> ":э" "»"
+               | "write" "є:" <parametro_write> ":э" "»"
+
+/* <variable> ya incluye el identificador solo, por eso se quito <identificador> porque pensamos que era redundante
+   Y podia causar ambiguedad
+   Si <variable> es un arreglo sin indice, se imprime completo (se valida en semantica) */
+<parametro_write> ::= <variable> | <literal>
+
+==================================================================================================
+4. Estructuras de control
+==================================================================================================
+<estructura_control> ::= <si_condicional>
+                       | <ciclo_while>
+                       | <ciclo_for>
+
+<si_condicional> ::= "if" "є:" <expr_booleana> ":э" <bloque>
+                   | "if" "є:" <expr_booleana> ":э" <bloque> <bloque_else>
+                   | "if" "є:" <expr_booleana> ":э" <bloque> <lista_elif>
+                   | "if" "є:" <expr_booleana> ":э" <bloque> <lista_elif> <bloque_else>
+
+<lista_elif> ::= <lista_elif> <bloque_elif>
+               | <bloque_elif>
+
+<bloque_elif> ::= "elif" "є:" <expr_booleana> ":э" <bloque>
+<bloque_else> ::= "else" <bloque>
+
+<ciclo_while> ::= "while" "є:" <expr_booleana> ":э" <bloque>
+
+/* Se usa » como separador dentro del for (no se agregan simbolos nuevos como ";")
+   La actualizacion permite asignacion o ++ / -- sobre una variable escalar */
+<ciclo_for> ::= "for" "є:" <for_init> "»" <expr_booleana> "»" <for_update> ":э" <bloque>
+
+<for_init> ::= "val" <tipo_dato> <identificador> "Ͱ" <expr_general>
+             | <variable> "Ͱ" <expr_general>
+
+<for_update> ::= <variable> "Ͱ" <expr_general>
+               | <identificador> "++"
+               | <identificador> "--"
+
+<break_stmt> ::= "break" "»"
+
+==================================================================================================
+5. Variables, arreglos estaticos y asignaciones
+==================================================================================================
+/* Declaracion (local o global), los arreglos solo existen para int y float, el tamano es obligatorio
+   Todo se factoriza por el tipo para que no haya conflictos en el parser */
+<declaracion> ::= "val" <tipo_numerico> <identificador> <resto_numerico>
+                | "val" <tipo_otro> <identificador> <resto_escalar>
+
+<resto_escalar> ::= "»"
+                  | "Ͱ" <expr_general> "»"
+
+<resto_numerico> ::= <resto_escalar>
+                   | "ʃ:" <entero> ":ʅ" "»"
+                   | "ʃ:" <entero> ":ʅ" "Ͱ" "¿:" <lista_valores> ":?" "»"
+
+<lista_valores> ::= <lista_valores> "," <expr_general>
+                  | <expr_general>
+
+<asignacion_var> ::= <variable> "Ͱ" <expr_general> "»"
+
+<sentencia_expr> ::= <expr_general> "»"
+
+<acceso_arreglo> ::= <identificador> "ʃ:" <expr_arit> ":ʅ"
+
+<variable> ::= <identificador> | <acceso_arreglo>
+
+<valor> ::= <variable> | <llamada_funcion>
+
+<llamada_funcion> ::= <identificador> "є:" <lista_valores> ":э"
+                    | <identificador> "є:" ":э"
+
+==================================================================================================
+6. Expresiones generales
+==================================================================================================
+/* Strings y chars solos no se mezclan con aritmetica ni con parentesis
+   Las variables y llamadas entran SOLO por <expr_arit> (via <valor>) para evitar ambiguedades */
+<expr_general> ::= <expr_grupo>
+                 | <cadena>
+                 | <caracter>
+
+/* Lo que puede ir dentro de "є: ... :э" */
+<expr_grupo> ::= <expr_arit>
+               | <expr_logica>
+               | <expr_relacional>
+               | <booleano>
+
+/* Condicion de if / elif / while / for: siempre booleana */
+<expr_booleana> ::= <expr_logica>
+                  | <expr_relacional>
+                  | <booleano>
+                  | <valor>
+
+==================================================================================================
+7. Expresiones relacionales y logicas
+==================================================================================================
+<op_rel> ::= "<" | "<=" | ">" | ">=" | "==" | "!="
+
+/* Forma obligatoria: ʃ: a :ʅ op ʃ: b :ʅ */
+<expr_relacional> ::= "ʃ:" <expr_comparable> ":ʅ" <op_rel> "ʃ:" <expr_comparable> ":ʅ"
+
+/* Variables y llamadas ya vienen en <expr_arit>. == y != tambien aceptan booleano y char
+   (el tipo se valida en semantica) */
+<expr_comparable> ::= <expr_arit> | <booleano> | <caracter>
+
+/* Forma obligatoria: є: a :э op є: b :э ; negacion con Σ */
+<grupo> ::= "є:" <expr_grupo> ":э"
+
+<expr_logica> ::= <grupo> "λ" <grupo>
+                | <grupo> "θ" <grupo>
+                | "Σ" <grupo>
+
+==================================================================================================
+8. Nucleo aritmetico
+==================================================================================================
+<expr_arit> ::= <expr_arit> "+" <termino>
+              | <expr_arit> "-" <termino>
+              | <termino>
+
+/* Precedencia (mayor a menor): ^  >  %  >  * / //  >  + - */
+<termino> ::= <termino> "*" <residuo>
+            | <termino> "/" <residuo>
+            | <termino> "//" <residuo>
+            | <residuo>
+
+<residuo> ::= <residuo> "%" <factor>
+            | <factor>
+
+<factor> ::= <base> "^" <factor>
+           | <base>
+
+/* ++ y -- solo sobre identificador escalar (no en arreglos), despues del operando
+   El negativo es opcional y solo en literales (<numero_con_signo>)
+   <grupo> sirve tanto de parentesis aritmetico como de operando logico, asi que no hay conflicto */
+<base> ::= <grupo>
+         | <numero_con_signo>
+         | <identificador> "++"
+         | <identificador> "--"
+         | <valor>
+
+==================================================================================================
+9. Notas lexicas (se resuelven en el JFlex, NO en las producciones)
+==================================================================================================
+Comentarios (se ignoran en el scanner):
+   linea:       |  hasta fin de linea
+   multilinea:  ¡  ...  !   (puede abarcar varias lineas)
+
+Literales (sin signo; el signo "-" es un token aparte que maneja la gramatica):
+   LITERAL_ENTERO    [0-9]+
+   LITERAL_FLOTANTE  [0-9]+\.[0-9]+
+   LITERAL_CARACTER  '[^']'
+   LITERAL_CADENA    "[^"]*"
+   IDENTIFICADOR     [a-zA-Z_][a-zA-Z0-9_]*
+
+Palabras reservadas:
+   val int float boolean char string void principal true false
+   if elif else while for return break read write
+
+Simbolos:
+   ¿: :?   ʃ: :ʅ   є: :э   Ͱ   »   ,
+   + - * / // % ^ ++ --
+   < <= > >= == !=
+   λ θ Σ

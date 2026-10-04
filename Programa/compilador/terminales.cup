@@ -1,0 +1,345 @@
+package compilador;
+
+import java_cup.runtime.*;
+import java.util.ArrayList;
+
+parser code {:
+    /* Lista de errores sintacticos encontrados (el parser no se detiene) */
+    public java.util.List<String> erroresSintacticos = new java.util.ArrayList<>();
+
+    // Métodos para manejo de errores desintaxis
+    public void syntax_error(Symbol cur_token) {
+        String m = "Error sintactico en linea " + cur_token.left + ", columna " + cur_token.right + ". Token no esperado: " + cur_token.value;
+        erroresSintacticos.add(m);
+        System.err.println(m);
+    }
+
+    /* Se llama si el modo panico no logra recuperarse */
+    public void unrecovered_syntax_error(Symbol cur_token) throws java.lang.Exception {
+        erroresSintacticos.add("Error fatal: no se pudo recuperar de los errores sintacticos.");
+        report_fatal_error("Error fatal: No se pudo recuperar de los errores sintacticos.", null);
+    }
+:};
+
+// TERMINALES
+terminal String VAL, INT, FLOAT, BOOLEAN, CHAR, STRING, VOID, PRINCIPAL, TRUE, FALSE;
+terminal String IF, ELIF, ELSE, WHILE, FOR, RETURN, BREAK, READ, WRITE;
+terminal String IDENTIFICADOR, LITERAL_ENTERO, LITERAL_FLOTANTE, LITERAL_CARACTER, LITERAL_CADENA;
+terminal String SUMA, RESTA, MULT, DIV, DIV_ENT, MOD, POT, INC, DEC;
+terminal String MENOR, MENOR_IG, MAYOR, MAYOR_IG, IGUAL, DIFERENTE;
+terminal String AND, OR, NOT;
+terminal String ASIGNACION, FIN_SENT, COMA;
+terminal String BLOQUE_ABRE, BLOQUE_CIERRA, INDICE_ABRE, INDICE_CIERRA, PAREN_ABRE, PAREN_CIERRA;
+
+// NO TERMINALES 
+non terminal programa, globales, declaracion, principal, bloque, sentencias, sentencia;
+non terminal funciones, funcion, tipo_retorno, parametros, parametro, return_stmt, funcion_io, parametro_write;
+non terminal estructura_control, si_condicional, lista_elif, bloque_elif, bloque_else;
+non terminal ciclo_while, ciclo_for, for_init, for_update, break_stmt;
+non terminal tipo_numerico, tipo_otro, tipo_dato, resto_escalar, resto_numerico, lista_valores;
+non terminal asignacion_var, sentencia_expr, acceso_arreglo, variable, valor, llamada_funcion;
+non terminal expr_general, expr_grupo, expr_booleana;
+non terminal op_rel, expr_relacional, expr_comparable, grupo, expr_logica;
+non terminal expr_arit, termino, residuo, factor, base;
+non terminal numero_con_signo, entero, flotante, caracter, cadena, booleano;
+
+start with programa;
+
+// 1. ESTRUCTURA DEL PROGRAMA Y VARIABLES GLOBALES 
+programa ::= 
+    globales funciones principal
+    | globales principal
+    | funciones principal
+    | principal
+    ;
+
+globales ::= 
+    globales declaracion
+    | declaracion
+    | globales error FIN_SENT
+    ;
+
+principal ::= 
+    VOID PRINCIPAL PAREN_ABRE PAREN_CIERRA bloque
+    ;
+
+bloque ::= 
+    BLOQUE_ABRE sentencias BLOQUE_CIERRA
+    | BLOQUE_ABRE BLOQUE_CIERRA
+    ;
+
+sentencias ::= 
+    sentencias sentencia
+    | sentencia
+    ;
+
+sentencia ::= 
+    declaracion
+    | asignacion_var
+    | sentencia_expr
+    | estructura_control
+    | funcion_io
+    | return_stmt
+    | break_stmt
+    | error FIN_SENT
+    | error BLOQUE_CIERRA
+    ;
+
+// 2. TIPOS, LITERALES Y VARIABLES 
+tipo_numerico ::= 
+    INT 
+    | FLOAT
+    ;
+
+tipo_otro ::= 
+    BOOLEAN 
+    | CHAR 
+    | STRING
+    ;
+
+tipo_dato ::= 
+    tipo_numerico 
+    | tipo_otro
+    ;
+
+booleano ::= 
+    TRUE 
+    | FALSE
+    ;
+
+entero ::= LITERAL_ENTERO;
+flotante ::= LITERAL_FLOTANTE;
+caracter ::= LITERAL_CARACTER;
+cadena ::= LITERAL_CADENA;
+
+numero_con_signo ::= 
+    RESTA entero
+    | entero
+    | RESTA flotante
+    | flotante
+    ;
+
+declaracion ::= 
+    VAL tipo_numerico IDENTIFICADOR resto_numerico
+    | VAL tipo_otro IDENTIFICADOR resto_escalar
+    ;
+
+resto_escalar ::= 
+    FIN_SENT
+    | ASIGNACION expr_general FIN_SENT
+    ;
+
+resto_numerico ::= 
+    resto_escalar
+    | INDICE_ABRE entero INDICE_CIERRA FIN_SENT
+    | INDICE_ABRE entero INDICE_CIERRA ASIGNACION BLOQUE_ABRE lista_valores BLOQUE_CIERRA FIN_SENT
+    ;
+
+lista_valores ::= 
+    lista_valores COMA expr_general
+    | expr_general
+    ;
+
+asignacion_var ::= 
+    variable ASIGNACION expr_general FIN_SENT
+    ;
+
+sentencia_expr ::= 
+    expr_general FIN_SENT
+    ;
+
+acceso_arreglo ::= 
+    IDENTIFICADOR INDICE_ABRE expr_arit INDICE_CIERRA
+    ;
+
+variable ::= 
+    IDENTIFICADOR 
+    | acceso_arreglo
+    ;
+
+valor ::= 
+    variable 
+    | llamada_funcion
+    ;
+
+llamada_funcion ::= 
+    IDENTIFICADOR PAREN_ABRE lista_valores PAREN_CIERRA
+    | IDENTIFICADOR PAREN_ABRE PAREN_CIERRA
+    ;
+
+//  3. FUNCIONES Y E/S 
+funciones ::= 
+    funciones funcion
+    | funcion
+    ;
+
+funcion ::= 
+    tipo_retorno IDENTIFICADOR PAREN_ABRE parametros PAREN_CIERRA bloque
+    | tipo_retorno IDENTIFICADOR PAREN_ABRE PAREN_CIERRA bloque
+    ;
+
+tipo_retorno ::= 
+    INT 
+    | FLOAT 
+    | CHAR 
+    | BOOLEAN
+    ;
+
+parametros ::= 
+    parametros COMA parametro
+    | parametro
+    ;
+
+parametro ::= 
+    tipo_dato IDENTIFICADOR
+    ;
+
+return_stmt ::= 
+    RETURN FIN_SENT
+    | RETURN expr_general FIN_SENT
+    ;
+
+funcion_io ::= 
+    READ PAREN_ABRE variable PAREN_CIERRA FIN_SENT
+    | WRITE PAREN_ABRE parametro_write PAREN_CIERRA FIN_SENT
+    ;
+
+parametro_write ::= 
+    variable 
+    | numero_con_signo 
+    | booleano 
+    | caracter 
+    | cadena
+    ;
+
+// 4. ESTRUCTURAS DE CONTROL 
+estructura_control ::= 
+    si_condicional
+    | ciclo_while
+    | ciclo_for
+    ;
+
+si_condicional ::= 
+    IF PAREN_ABRE expr_booleana PAREN_CIERRA bloque
+    | IF PAREN_ABRE expr_booleana PAREN_CIERRA bloque bloque_else
+    | IF PAREN_ABRE expr_booleana PAREN_CIERRA bloque lista_elif
+    | IF PAREN_ABRE expr_booleana PAREN_CIERRA bloque lista_elif bloque_else
+    ;
+
+lista_elif ::= 
+    lista_elif bloque_elif
+    | bloque_elif
+    ;
+
+bloque_elif ::= 
+    ELIF PAREN_ABRE expr_booleana PAREN_CIERRA bloque
+    ;
+
+bloque_else ::= 
+    ELSE bloque
+    ;
+
+ciclo_while ::= 
+    WHILE PAREN_ABRE expr_booleana PAREN_CIERRA bloque
+    ;
+
+ciclo_for ::= 
+    FOR PAREN_ABRE for_init FIN_SENT expr_booleana FIN_SENT for_update PAREN_CIERRA bloque
+    ;
+
+for_init ::= 
+    VAL tipo_dato IDENTIFICADOR ASIGNACION expr_general
+    | variable ASIGNACION expr_general
+    ;
+
+for_update ::= 
+    variable ASIGNACION expr_general
+    | IDENTIFICADOR INC
+    | IDENTIFICADOR DEC
+    ;
+
+break_stmt ::= 
+    BREAK FIN_SENT
+    ;
+
+// 5. EXPRESIONES GENERALES, RELACIONALES Y LÓGICAS 
+expr_general ::= 
+    expr_grupo
+    | cadena
+    | caracter
+    ;
+
+expr_grupo ::= 
+    expr_arit
+    | expr_logica
+    | expr_relacional
+    | booleano
+    ;
+
+expr_booleana ::= 
+    expr_logica
+    | expr_relacional
+    | booleano
+    | valor
+    ;
+
+op_rel ::= 
+    MENOR 
+    | MENOR_IG 
+    | MAYOR 
+    | MAYOR_IG 
+    | IGUAL 
+    | DIFERENTE
+    ;
+
+expr_relacional ::= 
+    INDICE_ABRE expr_comparable INDICE_CIERRA op_rel INDICE_ABRE expr_comparable INDICE_CIERRA
+    ;
+
+expr_comparable ::= 
+    expr_arit 
+    | booleano 
+    | caracter
+    ;
+
+grupo ::= 
+    PAREN_ABRE expr_grupo PAREN_CIERRA
+    ;
+
+expr_logica ::= 
+    grupo AND grupo
+    | grupo OR grupo
+    | NOT grupo
+    ;
+
+// 6. NÚCLEO ARITMÉTICO 
+expr_arit ::= 
+    expr_arit SUMA termino
+    | expr_arit RESTA termino
+    | termino
+    ;
+
+termino ::= 
+    termino MULT residuo
+    | termino DIV residuo
+    | termino DIV_ENT residuo
+    | residuo
+    ;
+
+residuo ::= 
+    residuo MOD factor
+    | factor
+    ;
+
+factor ::= 
+    base POT factor
+    | base
+    ;
+
+base ::= 
+    grupo
+    | numero_con_signo
+    | IDENTIFICADOR INC
+    | IDENTIFICADOR DEC
+    | valor
+    ;

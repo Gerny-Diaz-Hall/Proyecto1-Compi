@@ -1,0 +1,17 @@
+Error sintactico en linea 4, columna 20. Token no esperado: ʃ:
+Error sintactico en linea 13, columna 18. Token no esperado: a
+Error sintactico en linea 16, columna 24. Token no esperado: 15
+Error sintactico en linea 17, columna 18. Token no esperado: --
+Error sintactico en linea 20, columna 18. Token no esperado: abc
+Error sintactico en linea 21, columna 23. Token no esperado: >
+Error sintactico en linea 22, columna 34. Token no esperado: a
+Error sintactico en linea 23, columna 23. Token no esperado: a
+Error sintactico en linea 24, columna 35. Token no esperado: <
+Error sintactico en linea 25, columna 24. Token no esperado: »
+Error sintactico en linea 26, columna 23. Token no esperado: ,
+Error sintactico en linea 27, columna 16. Token no esperado: +
+Error sintactico en linea 28, columna 13. Token no esperado: 5
+Error sintactico en linea 29, columna 11. Token no esperado: Ͱ
+Error sintactico en linea 30, columna 10. Token no esperado: ++
+Error sintactico en linea 32, columna 13. Token no esperado: 2
+Error sintactico en linea 33, columna 11. Token no esperado: 5

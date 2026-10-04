@@ -1,0 +1,5 @@
+Error lexico en linea 15, columna 17: simbolo no reconocido por el lenguaje -> '@'
+Error lexico en linea 16, columna 20: cadena sin cerrar (falta '"' en la misma linea) -> '"sin cerrar »'
+Error lexico en linea 17, columna 18: literal de caracter mal formado (debe tener exactamente 1 caracter) -> ''ab''
+Error lexico en linea 18, columna 9: simbolo no reconocido por el lenguaje -> '='
+Error lexico en linea 20, columna 1: comentario multilinea sin cerrar (falta '!') -> '¡ comentario que nunca se cierra\n'
